@@ -1,9 +1,26 @@
 const express = require('express');
 const Recipe = require('../modules/recipeSchema');
 const router = express.Router();
+const multer=require('multer');
+const path=require('path');
+const verifyToken=require('../middleware/auth')
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './public/images')
+  },
+  filename: function (req, file, cb) {
+    const fillname = Date.now() + '-' + file.fieldname
+    cb(null, fillname)
+  }
+})
+
+const upload = multer({ storage: storage })
 
 
-router.post('/', async (req, res) => {
+
+
+router.post('/', upload.single('coverImage') ,verifyToken, async (req, res) => {
+    console.log(req.user);
     const { title, ingredients, instructions } = req.body;
     if (!title || !ingredients || !instructions) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -11,7 +28,10 @@ router.post('/', async (req, res) => {
     const newRecipe = await Recipe.create({
         title,
         ingredients,
-        instructions
+        instructions,
+        coverImage: req.file ?.filename ,
+        createdBy: req.user.id
+
     });
     res.status(201).json(newRecipe);
 });
@@ -41,14 +61,15 @@ router.get('/:id', async (req, res) => {
 })
 
 
-router.put('/:id', async (req, res) => {
+router.put('/:id',upload.single('coverImage'), async (req, res) => {
     const { id } = req.params;
     const { title, ingredients, instructions } = req.body;
     try {
         const updatedRecipe = await Recipe.findByIdAndUpdate(id, {
             title,
             ingredients,
-            instructions
+            instructions,
+            coverImage: req.file ?.filename
         }, {
             new: true,
             runValidators: true

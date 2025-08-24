@@ -6,7 +6,7 @@ const RecipeSchema=new mongoose.Schema({
         required:true
     },
     ingredients:{
-        type:String,
+        type:Array,
         required:true
     },
     instructions:{
@@ -20,6 +20,11 @@ const RecipeSchema=new mongoose.Schema({
     createdAT:{
         type:Date,
         default:Date.now
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        required: true
     }
 });
 module.exports=mongoose.model('Recipe',RecipeSchema)

@@ -1,5 +1,6 @@
 import React from 'react'
 import axios  from 'axios'
+import { HiHeart } from 'react-icons/hi';
 import { useState,useEffect } from 'react';
 function AllRecipes() {
     const [recipes, setRecipes] =useState([]);
@@ -13,22 +14,21 @@ function AllRecipes() {
         });
     }, []);
   return (
-    <div>
-     {Array.isArray(recipes) && recipes.length > 0 ? (
-        recipes.map((recipe, index) => (
-          <div key={recipe._id || index}>
+    <div className='recipes-container'>
+      <h2>All Recipes</h2>
+      <div className="cards-wrapper">
+        {recipes.map((recipe,index) => (
+          <div key={index} className='recipe-card'>
+            <img className='w-100' src={`http://localhost:5000/public/images/${recipe.coverImage}`} alt={recipe.title} />
             <h4>{recipe.title}</h4>
-            <p>
-              {Array.isArray(recipe.ingredients)
-                ? recipe.ingredients.join(", ")
-                : String(recipe.ingredients || "Pas d’ingrédients")}
-            </p>
+            <p>{recipe.ingredients.join(', ')}</p>
             <small>{recipe.instructions}</small>
+            <div className="icons">
+              <HiHeart />
+            </div>
           </div>
-        ))
-      ) : (
-        <p>Aucune recette trouvée</p>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
