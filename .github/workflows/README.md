@@ -89,7 +89,7 @@ Ce projet utilise deux workflows séparés pour une meilleure séparation des re
 
 ---
 
-## 🔐 Secrets requis
+## 🔐            Secrets requis
 
 ### Pour CI (automatique)
 - Aucun secret requis (utilise GITHUB_TOKEN automatiquement)

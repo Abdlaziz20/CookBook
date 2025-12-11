@@ -336,7 +336,13 @@ docker compose ps
 
 # Redémarrer tous les services
 docker compose restart
+
+
+
 ```
+
+
+
 
 **Port déjà utilisé :**
 Si les ports 3000, 5173 ou 27017 sont déjà utilisés, modifiez-les dans `docker-compose.yml`
