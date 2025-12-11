@@ -102,41 +102,57 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     needs: [build-and-push-images]
-    if: ${{ secrets.KUBECONFIG }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if KUBECONFIG secret exists
+        id: check-kubeconfig
+        run: |
+          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ KUBECONFIG secret not found, skipping Kubernetes deployment"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup kubectl
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
       - name: Configure kubectl
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Update backend deployment
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         run: |
           kubectl set image deployment/cookbook-backend \
             backend=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
             -n default || echo "Deployment cookbook-backend not found, skipping..."
 
       - name: Update frontend deployment
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         run: |
           kubectl set image deployment/cookbook-frontend \
             frontend=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
             -n default || echo "Deployment cookbook-frontend not found, skipping..."
 
       - name: Wait for rollout
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         run: |
           kubectl rollout status deployment/cookbook-backend -n default --timeout=5m || true
           kubectl rollout status deployment/cookbook-frontend -n default --timeout=5m || true
 
       - name: Verify deployment
+        if: steps.check-kubeconfig.outputs.skip == 'false'
         run: |
           kubectl get pods -n default
           kubectl get services -n default
@@ -145,26 +161,40 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: [build-and-push-images]
-    if: ${{ secrets.SSH_PRIVATE_KEY && secrets.SSH_HOST }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if SSH secrets exist
+        id: check-ssh
+        run: |
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ SSH secrets not found, skipping VPS deployment"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup SSH
+        if: steps.check-ssh.outputs.skip == 'false'
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Set SSH user
+        if: steps.check-ssh.outputs.skip == 'false'
         id: ssh-user
         run: echo "user=${{ secrets.SSH_USER || 'root' }}" >> $GITHUB_OUTPUT
 
       - name: Test SSH connection
+        if: steps.check-ssh.outputs.skip == 'false'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
 
       - name: Deploy to VPS via SSH
+        if: steps.check-ssh.outputs.skip == 'false'
         run: |
           chmod +x scripts/deploy-vps.sh
           ./scripts/deploy-vps.sh \
@@ -173,6 +203,7 @@ jobs:
             ${{ github.sha }}
 
       - name: Verify deployment
+        if: steps.check-ssh.outputs.skip == 'false'
         run: |
           ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@${{ secrets.SSH_HOST }} \
             "docker compose -f ~/cookbook/docker-compose.prod.yml ps"
