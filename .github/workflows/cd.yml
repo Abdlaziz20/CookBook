@@ -23,7 +23,7 @@ jobs:
   build-and-push-images:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     
     permissions:
       contents: read
@@ -78,8 +78,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-          build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL || 'http://localhost:3000' }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -104,10 +102,8 @@ jobs:
     name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     needs: [build-and-push-images]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      secrets.KUBECONFIG != ''
-    
+    if: ${{ secrets.KUBECONFIG }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -120,7 +116,7 @@ jobs:
       - name: Configure kubectl
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config || echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Update backend deployment
@@ -149,11 +145,8 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: [build-and-push-images]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      secrets.SSH_PRIVATE_KEY != '' &&
-      secrets.SSH_HOST != ''
-    
+    if: ${{ secrets.SSH_PRIVATE_KEY && secrets.SSH_HOST }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -163,20 +156,23 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Set SSH user
+        id: ssh-user
+        run: echo "user=${{ secrets.SSH_USER || 'root' }}" >> $GITHUB_OUTPUT
+
       - name: Test SSH connection
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER || 'root' }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
+          ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@${{ secrets.SSH_HOST }} "echo 'SSH connection successful'"
 
       - name: Deploy to VPS via SSH
         run: |
           chmod +x scripts/deploy-vps.sh
           ./scripts/deploy-vps.sh \
             ${{ secrets.SSH_HOST }} \
-            ${{ secrets.SSH_USER || 'root' }} \
+            ${{ steps.ssh-user.outputs.user }} \
             ${{ github.sha }}
 
       - name: Verify deployment
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER || 'root' }}@${{ secrets.SSH_HOST }} \
+          ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@${{ secrets.SSH_HOST }} \
             "docker compose -f ~/cookbook/docker-compose.prod.yml ps"
-
