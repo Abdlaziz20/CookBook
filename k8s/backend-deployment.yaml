@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cookbook-backend
+  labels:
+    app: cookbook-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cookbook-backend
+  template:
+    metadata:
+      labels:
+        app: cookbook-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/OWNER/cookbook-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MONGODB_URI
+          value: "mongodb://cookbook-mongo:27017/cookbook"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: cookbook-secrets
+              key: jwt-secret
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: "production"
+        volumeMounts:
+        - name: uploads-storage
+          mountPath: /app/public/images
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/recipes
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/recipes
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      imagePullSecrets:
+      - name: ghcr-secret
+

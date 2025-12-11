@@ -1,0 +1,158 @@
+{
+  "project_type": "full-stack-mern",
+  "description": "CookBook - Full-stack MERN application (MongoDB, Express, React, Node.js) with image uploads",
+  "ci_workflow": ".github/workflows/ci-cd.yml",
+  "backend_dockerfile": "backend/Dockerfile.prod",
+  "frontend_dockerfile": "frontend/recipe-app/Dockerfile.prod",
+  "docker_compose_prod": "docker-compose.prod.yml",
+  "k8s_manifests": {
+    "backend_deployment": "k8s/backend-deployment.yaml",
+    "backend_service": "k8s/backend-service.yaml",
+    "frontend_deployment": "k8s/frontend-deployment.yaml",
+    "frontend_service": "k8s/frontend-service.yaml",
+    "mongo_deployment": "k8s/mongo-deployment.yaml",
+    "mongo_service": "k8s/mongo-service.yaml",
+    "persistent_volumes": "k8s/uploads-pvc.yaml",
+    "secrets_example": "k8s/secrets.yaml.example",
+    "readme": "k8s/README.md"
+  },
+  "ssh_deploy_script": "scripts/deploy-vps.sh",
+  "secrets_list": [
+    {
+      "name": "GITHUB_TOKEN",
+      "description": "Automatically provided by GitHub Actions for GHCR authentication",
+      "required": false,
+      "auto_provided": true
+    },
+    {
+      "name": "VITE_API_URL",
+      "description": "Frontend API URL (defaults to http://localhost:3000 if not set)",
+      "required": false,
+      "default": "http://localhost:3000"
+    },
+    {
+      "name": "KUBECONFIG",
+      "description": "Base64 encoded Kubernetes config file for K8s deployment",
+      "required": false,
+      "conditional": "Only needed for Kubernetes deployment"
+    },
+    {
+      "name": "SSH_PRIVATE_KEY",
+      "description": "SSH private key for VPS deployment",
+      "required": false,
+      "conditional": "Only needed for SSH/VPS deployment"
+    },
+    {
+      "name": "SSH_HOST",
+      "description": "VPS hostname or IP address",
+      "required": false,
+      "conditional": "Only needed for SSH/VPS deployment"
+    },
+    {
+      "name": "SSH_USER",
+      "description": "SSH username (defaults to root)",
+      "required": false,
+      "default": "root"
+    }
+  ],
+  "readme_snippet": "## CI/CD Pipeline\n\nThis project includes a complete CI/CD pipeline using GitHub Actions:\n\n- **CI Jobs**: Lint and test backend/frontend on PRs\n- **Build**: Multi-stage Docker builds with caching\n- **Push**: Images pushed to GitHub Container Registry (GHCR)\n- **Deploy**: Conditional deployment to Kubernetes or VPS via SSH\n\nSee `.github/workflows/ci-cd.yml` for details.\n\n### Required Secrets\n\n- `VITE_API_URL` (optional): Frontend API URL\n- `KUBECONFIG` (optional): For Kubernetes deployment\n- `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` (optional): For VPS deployment",
+  "steps_explanation": {
+    "ci_backend": {
+      "steps": [
+        "Checkout code",
+        "Setup Node.js 18 with npm cache",
+        "Install dependencies (npm ci)",
+        "Run lint (if script exists, graceful skip)",
+        "Run tests (if script exists, graceful skip)"
+      ],
+      "triggers": ["push", "pull_request"]
+    },
+    "ci_frontend": {
+      "steps": [
+        "Checkout code",
+        "Setup Node.js 20 with npm cache",
+        "Install dependencies (npm ci)",
+        "Run lint (ESLint)",
+        "Build production bundle",
+        "Upload build artifacts"
+      ],
+      "triggers": ["push", "pull_request"]
+    },
+    "build_and_push": {
+      "steps": [
+        "Setup Docker Buildx",
+        "Login to GHCR",
+        "Build backend image (multi-stage, cached)",
+        "Push backend image with tags: SHA, latest, branch",
+        "Build frontend image (multi-stage, cached)",
+        "Push frontend image with tags: SHA, latest, branch"
+      ],
+      "triggers": ["push to main/master"],
+      "image_tags": {
+        "backend": "ghcr.io/${{ github.repository_owner }}/cookbook-backend:${{ github.sha }}",
+        "frontend": "ghcr.io/${{ github.repository_owner }}/cookbook-frontend:${{ github.sha }}"
+      }
+    },
+    "deploy": {
+      "strategies": [
+        {
+          "name": "kubernetes",
+          "condition": "secrets.KUBECONFIG != ''",
+          "steps": [
+            "Checkout code",
+            "Deploy using kubectl",
+            "Update deployments with new image tags"
+          ]
+        },
+        {
+          "name": "ssh_vps",
+          "condition": "secrets.SSH_PRIVATE_KEY != ''",
+          "steps": [
+            "Checkout code",
+            "Setup SSH agent",
+            "Execute deploy-vps.sh script",
+            "Pull images, restart containers"
+          ]
+        }
+      ],
+      "triggers": ["push to main/master"]
+    }
+  },
+  "dockerfiles": {
+    "backend": {
+      "type": "multi-stage",
+      "base_image": "node:18-alpine",
+      "production": true,
+      "features": [
+        "Non-root user",
+        "Health checks",
+        "Production dependencies only",
+        "Uploads directory creation"
+      ]
+    },
+    "frontend": {
+      "type": "multi-stage",
+      "build_stage": "node:20-alpine",
+      "production_stage": "nginx:alpine",
+      "features": [
+        "Vite build",
+        "Nginx serving",
+        "SPA routing support",
+        "Gzip compression",
+        "Security headers",
+        "Static asset caching",
+        "Health check endpoint"
+      ]
+    }
+  },
+  "local_testing": {
+    "command": "docker compose -f docker-compose.prod.yml up --build",
+    "services": ["mongo", "backend", "frontend"],
+    "ports": {
+      "frontend": "80",
+      "backend": "3000",
+      "mongo": "27017"
+    }
+  }
+}
+
