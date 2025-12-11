@@ -1,5 +1,6 @@
 import axios from 'axios';
 import React from 'react'
+import API_URL from '../config/api';
 
 function InputForm() {
   const [email, setEmail] = React.useState("");
@@ -13,7 +14,7 @@ function InputForm() {
    
     setSuccess("");
     setError("");
-    await axios.post(`http://localhost:5000/api/users/${endpoint}`, { email, password })
+    await axios.post(`${API_URL}/api/users/${endpoint}`, { email, password })
       .then((response) => {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));

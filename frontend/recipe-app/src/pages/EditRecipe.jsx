@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from '../config/api';
 
 function EditRecipe() {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ const onHandleSubmit = async (e) => {
         formData.append("coverImage", recipe.coverImage);
     }
     console.log("sending recipe data",recipe)
-    await axios.put(`http://localhost:5000/api/recipes/${id}`, formData, {
+    await axios.put(`${API_URL}/api/recipes/${id}`, formData, {
        headers: {
            "Content-Type": "multipart/form-data",
            'Authorization': `Bearer ${localStorage.getItem("token")}`
@@ -50,7 +51,7 @@ const onHandleSubmit = async (e) => {
 const {id} = useParams();
 useEffect(()=>{
 const getRecipe = async () => {
- await axios.get(`http://localhost:5000/api/recipes/${id}`)
+ await axios.get(`${API_URL}/api/recipes/${id}`)
  .then(response=>{
     console.log("fetched recipe data", response.data);
     let res =response.data;

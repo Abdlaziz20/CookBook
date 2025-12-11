@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { HiHeart } from 'react-icons/hi';
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { MdDeleteOutline } from "react-icons/md";
+import API_URL from '../config/api';
 function MyRecipes() {
   const [recipes, setRecipes] = React.useState([]);
 useEffect(()=>{
@@ -11,14 +12,14 @@ useEffect(()=>{
 const user =JSON.parse(localStorage.getItem("user"));
 if(!user)return
 
-const {data}=await axios.get("http://localhost:5000/api/recipes")
+const {data}=await axios.get(`${API_URL}/api/recipes`)
 const MyRecipes =data.filter(recipe=>recipe.createdBy===user._id)
 setRecipes(MyRecipes)
   }
   fetchMyRecipes();
 },[])
 const onDeleteRecipe=async(id)=>{
-  await axios.delete(`http://localhost:5000/api/recipes/${id}`)
+  await axios.delete(`${API_URL}/api/recipes/${id}`)
    .then((res) => {
 
      console.log("Recipe deleted successfully:", res);
@@ -31,7 +32,7 @@ const onDeleteRecipe=async(id)=>{
          <div className="cards-wrapper">
            {recipes.map((recipe,index) => (
              <div key={index} className='recipe-card'>
-               <img className='w-100' src={`http://localhost:5000/public/images/${recipe.coverImage}`} alt={recipe.title} />
+               <img className='w-100' src={`${API_URL}/public/images/${recipe.coverImage}`} alt={recipe.title} />
                <h4>{recipe.title}</h4>
                <p>{recipe.ingredients.join(", ")}</p>
                <small>{recipe.instructions}</small>

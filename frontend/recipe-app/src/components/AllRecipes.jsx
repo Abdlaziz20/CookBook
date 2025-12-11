@@ -2,10 +2,11 @@ import React from 'react'
 import axios  from 'axios'
 import { HiHeart } from 'react-icons/hi';
 import { useState,useEffect } from 'react';
+import API_URL from '../config/api';
 function AllRecipes() {
     const [recipes, setRecipes] =useState([]);
     useEffect(()=>{
-        axios.get("http://localhost:5000/api/recipes")
+        axios.get(`${API_URL}/api/recipes`)
         .then((response) => {
             setRecipes(response.data);
         })
@@ -19,7 +20,7 @@ function AllRecipes() {
       <div className="cards-wrapper">
         {recipes.map((recipe,index) => (
           <div key={index} className='recipe-card'>
-            <img className='w-100' src={`http://localhost:5000/public/images/${recipe.coverImage}`} alt={recipe.title} />
+            <img className='w-100' src={`${API_URL}/public/images/${recipe.coverImage}`} alt={recipe.title} />
             <h4>{recipe.title}</h4>
             <p>{recipe.ingredients.join(', ')}</p>
             <small>{recipe.instructions}</small>

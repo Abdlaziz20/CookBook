@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from '../config/api';
 
 function AddRecipes() {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ const onHandleSubmit = async (e) => {
         formData.append("coverImage", recipe.coverImage);
     }
     console.log("sending recipe data",recipe)
-    await axios.post("http://localhost:5000/api/recipes/", formData, {
+    await axios.post(`${API_URL}/api/recipes/`, formData, {
        headers: {
            "Content-Type": "multipart/form-data",
            'Authorization': `Bearer ${localStorage.getItem("token")}`

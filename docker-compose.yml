@@ -1,0 +1,41 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: cookbook-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: cookbook-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/cookbook
+      - JWT_SECRET=votre_secret_jwt_super_securise
+      - PORT=3000
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/app
+      - ./backend/public/images:/app/public/images
+
+  frontend:
+    build: ./frontend/recipe-app
+    container_name: cookbook-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/recipe-app:/app
+
+volumes:
+  mongo-data:

@@ -9,10 +9,15 @@ Une application web complète de gestion de recettes culinaires permettant aux u
 - [Structure du projet](#-structure-du-projet)
 - [Prérequis](#-prérequis)
 - [Installation](#-installation)
+- [🐳 Exécution avec Docker Compose](#-exécution-avec-docker-compose-recommandé)
+- [💻 Exécution locale](#-exécution-locale-sans-docker)
 - [Configuration](#-configuration)
 - [Utilisation](#-utilisation)
 - [API Endpoints](#-api-endpoints)
+- [Dépannage](#-dépannage)
 - [Auteur](#-auteur)
+
+> 💡 **Guide rapide** : Pour une exécution rapide, consultez [GUIDE_EXECUTION.md](GUIDE_EXECUTION.md)
 
 ## ✨ Fonctionnalités
 
@@ -86,9 +91,14 @@ CookBook/
 
 ## 📦 Prérequis
 
-Avant de commencer, assurez-vous d'avoir installé :
+### Pour l'exécution avec Docker (Recommandé)
 
-- **Node.js** (version 14 ou supérieure)
+- **Docker** (version 20.10 ou supérieure)
+- **Docker Compose** (version 2.0 ou supérieure)
+
+### Pour l'exécution locale (sans Docker)
+
+- **Node.js** (version 14 ou supérieure pour le backend, version 20+ pour le frontend)
 - **npm** ou **yarn**
 - **MongoDB** (localement ou MongoDB Atlas)
 
@@ -98,17 +108,102 @@ Avant de commencer, assurez-vous d'avoir installé :
 
 ```bash
 git clone <url-du-repository>
-cd CookBook
+cd full-stack-mern
 ```
 
-### 2. Installer les dépendances du backend
+## 🐳 Exécution avec Docker Compose (Recommandé)
+
+Cette méthode est la plus simple et garantit que tous les services fonctionnent correctement ensemble.
+
+### Étapes d'exécution
+
+1. **Vérifier que Docker est installé et en cours d'exécution**
+
+```bash
+docker --version
+docker compose version
+```
+
+2. **Construire et démarrer tous les conteneurs**
+
+```bash
+docker compose up --build
+```
+
+Cette commande va :
+- Télécharger les images nécessaires (MongoDB, Node.js)
+- Construire les images pour le backend et le frontend
+- Démarrer tous les services (MongoDB, Backend, Frontend)
+
+3. **Démarrer en arrière-plan (mode détaché)**
+
+```bash
+docker compose up --build -d
+```
+
+4. **Vérifier l'état des conteneurs**
+
+```bash
+docker compose ps
+```
+
+Vous devriez voir trois conteneurs en cours d'exécution :
+- `cookbook-mongo` (MongoDB)
+- `cookbook-backend` (API Backend)
+- `cookbook-frontend` (Application React)
+
+5. **Accéder à l'application**
+
+- **Frontend** : http://localhost:5173
+- **Backend API** : http://localhost:3000
+- **MongoDB** : localhost:27017
+
+### Commandes utiles Docker Compose
+
+```bash
+# Voir les logs de tous les services
+docker compose logs
+
+# Voir les logs d'un service spécifique
+docker compose logs backend
+docker compose logs frontend
+docker compose logs mongo
+
+# Suivre les logs en temps réel
+docker compose logs -f
+
+# Arrêter tous les conteneurs
+docker compose down
+
+# Arrêter et supprimer les volumes (⚠️ supprime les données MongoDB)
+docker compose down -v
+
+# Redémarrer un service spécifique
+docker compose restart backend
+
+# Reconstruire un service spécifique
+docker compose up --build backend
+```
+
+### Variables d'environnement
+
+Les variables d'environnement sont configurées dans `docker-compose.yml`. Pour les modifier :
+
+- **MONGODB_URI** : URI de connexion MongoDB (par défaut: `mongodb://mongo:27017/cookbook`)
+- **JWT_SECRET** : Secret pour la signature des tokens JWT
+- **PORT** : Port du serveur backend (par défaut: 3000)
+- **VITE_API_URL** : URL de l'API backend pour le frontend (par défaut: `http://localhost:3000`)
+
+## 💻 Exécution locale (sans Docker)
+
+### 1. Installer les dépendances du backend
 
 ```bash
 cd backend
 npm install
 ```
 
-### 3. Installer les dépendances du frontend
+### 2. Installer les dépendances du frontend
 
 ```bash
 cd ../frontend/recipe-app
@@ -117,25 +212,56 @@ npm install
 
 ## ⚙️ Configuration
 
-### Configuration du Backend
+### Configuration avec Docker
+
+Avec Docker Compose, la configuration est automatique via les variables d'environnement définies dans `docker-compose.yml`. Aucune configuration supplémentaire n'est nécessaire.
+
+### Configuration locale (sans Docker)
+
+#### Configuration du Backend
 
 1. Créez un fichier `.env` dans le dossier `backend/` :
 
 ```env
-port=3000
+PORT=3000
 MONGODB_URI=mongodb://localhost:27017/cookbook
 JWT_SECRET=votre_secret_jwt_super_securise
 ```
 
 2. Assurez-vous que MongoDB est en cours d'exécution sur votre machine, ou utilisez une URI MongoDB Atlas.
 
-### Configuration du Frontend
+#### Configuration du Frontend
 
-Si nécessaire, configurez l'URL de l'API dans les fichiers de composants React (généralement `http://localhost:3000`).
+L'URL de l'API est configurée dans `frontend/recipe-app/src/config/api.js`. Par défaut, elle pointe vers `http://localhost:3000`.
 
 ## 💻 Utilisation
 
-### Démarrer le serveur backend
+### Avec Docker Compose
+
+Une fois les conteneurs démarrés avec `docker compose up`, l'application est directement accessible :
+
+- **Frontend** : http://localhost:5173
+- **Backend API** : http://localhost:3000
+
+Les services redémarrent automatiquement en cas de modification du code grâce aux volumes montés.
+
+### Sans Docker (exécution locale)
+
+#### Démarrer MongoDB
+
+Assurez-vous que MongoDB est en cours d'exécution :
+
+```bash
+# Sur Linux/Mac
+sudo systemctl start mongod
+# ou
+mongod
+
+# Sur Windows
+net start MongoDB
+```
+
+#### Démarrer le serveur backend
 
 ```bash
 cd backend
@@ -144,7 +270,7 @@ npm run dev
 
 Le serveur backend sera accessible sur `http://localhost:3000`
 
-### Démarrer l'application frontend
+#### Démarrer l'application frontend
 
 Dans un nouveau terminal :
 
@@ -193,6 +319,42 @@ L'application frontend sera accessible sur `http://localhost:5173` (ou le port i
 - L'authentification utilise JWT (JSON Web Token)
 - Les mots de passe sont hachés avec bcrypt avant stockage
 - Le serveur backend doit être démarré avant le frontend pour que l'application fonctionne correctement
+- Avec Docker Compose, les données MongoDB sont persistantes dans un volume nommé `mongo-data`
+- Les modifications du code sont reflétées automatiquement grâce aux volumes montés (hot-reload)
+
+## 🔧 Dépannage
+
+### Problèmes courants avec Docker
+
+**Les conteneurs ne démarrent pas :**
+```bash
+# Vérifier les logs
+docker compose logs
+
+# Vérifier l'état des conteneurs
+docker compose ps
+
+# Redémarrer tous les services
+docker compose restart
+```
+
+**Port déjà utilisé :**
+Si les ports 3000, 5173 ou 27017 sont déjà utilisés, modifiez-les dans `docker-compose.yml`
+
+**Problèmes de permissions :**
+```bash
+# Sur Linux, vous pourriez avoir besoin de :
+sudo docker compose up
+```
+
+**Réinitialiser complètement :**
+```bash
+# Arrêter et supprimer tous les conteneurs et volumes
+docker compose down -v
+
+# Reconstruire depuis zéro
+docker compose up --build
+```
 
 ## 👤 Auteur
 
