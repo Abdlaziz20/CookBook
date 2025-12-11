@@ -6,7 +6,7 @@ echo "║           Tests Complets - CookBook Application             ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Couleurs
+# Couleurs          ,,,,,
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
