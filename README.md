@@ -17,7 +17,7 @@ Une application web complète de gestion de recettes culinaires permettant aux u
 - [Dépannage](#-dépannage)
 - [Auteur](#-auteur)
 
-> 💡 **Guide rapide** : Pour une exécution rapide, consultez [GUIDE_EXECUTION.md](GUIDE_EXECUTION.md)
+> 💡 **Guide complet** : Pour un guide détaillé sur l'exécution, le développement et le déploiement, consultez [GUIDE_COMPLET.md](GUIDE_COMPLET.md)
 
 ## ✨ Fonctionnalités
 

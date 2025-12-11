@@ -1,7 +1,8 @@
 {
   "project_type": "full-stack-mern",
   "description": "CookBook - Full-stack MERN application (MongoDB, Express, React, Node.js) with image uploads",
-  "ci_workflow": ".github/workflows/ci-cd.yml",
+  "ci_workflow": ".github/workflows/ci.yml",
+  "cd_workflow": ".github/workflows/cd.yml",
   "backend_dockerfile": "backend/Dockerfile.prod",
   "frontend_dockerfile": "frontend/recipe-app/Dockerfile.prod",
   "docker_compose_prod": "docker-compose.prod.yml",
@@ -55,7 +56,7 @@
       "default": "root"
     }
   ],
-  "readme_snippet": "## CI/CD Pipeline\n\nThis project includes a complete CI/CD pipeline using GitHub Actions:\n\n- **CI Jobs**: Lint and test backend/frontend on PRs\n- **Build**: Multi-stage Docker builds with caching\n- **Push**: Images pushed to GitHub Container Registry (GHCR)\n- **Deploy**: Conditional deployment to Kubernetes or VPS via SSH\n\nSee `.github/workflows/ci-cd.yml` for details.\n\n### Required Secrets\n\n- `VITE_API_URL` (optional): Frontend API URL\n- `KUBECONFIG` (optional): For Kubernetes deployment\n- `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` (optional): For VPS deployment",
+  "readme_snippet": "## CI/CD Pipeline\n\nThis project uses **two separate workflows** for better separation of concerns:\n\n### CI Workflow (`.github/workflows/ci.yml`)\n- **Triggers**: On every push and pull request\n- **Purpose**: Validate code before merging\n- **Jobs**: Lint and test backend/frontend\n- **No secrets required**\n\n### CD Workflow (`.github/workflows/cd.yml`)\n- **Triggers**: On push to main/master or manual dispatch\n- **Purpose**: Build and deploy to production\n- **Jobs**: Build Docker images, push to GHCR, deploy to K8s or VPS\n- **Secrets**: VITE_API_URL (optional), KUBECONFIG (optional), SSH_* (optional)\n\nSee `.github/workflows/README.md` for detailed documentation.",
   "steps_explanation": {
     "ci_backend": {
       "steps": [
