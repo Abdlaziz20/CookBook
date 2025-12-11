@@ -2,12 +2,20 @@
 set -e
 
 # Deploy script for VPS deployment via SSH
-# Usage: ./scripts/deploy-vps.sh <SSH_HOST> <SSH_USER> <IMAGE_TAG>
+# Usage: ./scripts/deploy-vps.sh <SSH_HOST> <SSH_USER> <IMAGE_TAG> [SSH_KEY_PATH]
 
 SSH_HOST=${1:-"your-vps-host.com"}
 SSH_USER=${2:-"root"}
 IMAGE_TAG=${3:-"latest"}
+SSH_KEY=${4:-""}
 REPO_OWNER=${GITHUB_REPOSITORY_OWNER:-"your-username"}
+
+# Construire la commande SSH avec la clé si fournie
+if [ -n "$SSH_KEY" ] && [ -f "$SSH_KEY" ]; then
+  SSH_CMD="ssh -i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts"
+else
+  SSH_CMD="ssh -o StrictHostKeyChecking=no"
+fi
 
 echo "🚀 Deploying CookBook to VPS..."
 echo "Host: $SSH_HOST"
@@ -15,7 +23,7 @@ echo "User: $SSH_USER"
 echo "Image Tag: $IMAGE_TAG"
 
 # Create remote directory structure
-ssh ${SSH_USER}@${SSH_HOST} << EOF
+$SSH_CMD ${SSH_USER}@${SSH_HOST} << EOF
   set -e
   mkdir -p ~/cookbook/{backend,frontend,uploads}
   cd ~/cookbook
@@ -74,8 +82,11 @@ volumes:
     driver: local
 DOCKERCOMPOSE
 
-  # Login to GHCR if needed
-  echo "\${GITHUB_TOKEN}" | docker login ghcr.io -u ${REPO_OWNER} --password-stdin || true
+  # Login to GHCR if needed (token should be in environment or use PAT)
+  # Note: GITHUB_TOKEN is automatically available in GitHub Actions
+  if [ -n "\${GITHUB_TOKEN}" ]; then
+    echo "\${GITHUB_TOKEN}" | docker login ghcr.io -u ${REPO_OWNER} --password-stdin || true
+  fi
   
   # Pull latest images
   docker compose -f docker-compose.prod.yml pull

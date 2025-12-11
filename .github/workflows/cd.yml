@@ -79,6 +79,15 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      - name: Set VITE_API_URL
+        id: vite-api-url
+        run: |
+          VITE_API_URL_VALUE="${{ secrets.VITE_API_URL }}"
+          if [ -z "$VITE_API_URL_VALUE" ]; then
+            VITE_API_URL_VALUE="http://localhost:3000"
+          fi
+          echo "url=$VITE_API_URL_VALUE" >> $GITHUB_OUTPUT
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -90,7 +99,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL || 'http://localhost:3000' }}
+            VITE_API_URL=${{ steps.vite-api-url.outputs.url }}
           platforms: linux/amd64,linux/arm64
 
       - name: Output image tags
@@ -181,14 +190,33 @@ jobs:
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "⚠️ SSH secrets not found, skipping VPS deployment"
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            # Vérifier le format de la clé SSH
+            if echo "$SSH_PRIVATE_KEY_SECRET" | grep -q "BEGIN.*PRIVATE KEY"; then
+              echo "skip=false" >> $GITHUB_OUTPUT
+              echo "✅ SSH key format valid"
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "❌ SSH key format invalid. Key must start with '-----BEGIN'"
+            fi
           fi
 
-      - name: Setup SSH
+      - name: Setup SSH key
         if: steps.check-ssh.outputs.skip == 'false'
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        env:
+          SSH_PRIVATE_KEY_SECRET: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY_SECRET" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          
+      - name: Setup SSH agent
+        if: steps.check-ssh.outputs.skip == 'false'
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/deploy_key
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
 
       - name: Set SSH user
         if: steps.check-ssh.outputs.skip == 'false'
@@ -204,23 +232,34 @@ jobs:
         env:
           SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@$SSH_HOST_SECRET "echo 'SSH connection successful'"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key ${{ steps.ssh-user.outputs.user }}@$SSH_HOST_SECRET "echo 'SSH connection successful'"
 
       - name: Deploy to VPS via SSH
         if: steps.check-ssh.outputs.skip == 'false'
         env:
           SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           chmod +x scripts/deploy-vps.sh
           ./scripts/deploy-vps.sh \
             $SSH_HOST_SECRET \
             ${{ steps.ssh-user.outputs.user }} \
-            ${{ github.sha }}
+            ${{ github.sha }} \
+            ~/.ssh/deploy_key
 
       - name: Verify deployment
         if: steps.check-ssh.outputs.skip == 'false'
         env:
           SSH_HOST_SECRET: ${{ secrets.SSH_HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ steps.ssh-user.outputs.user }}@$SSH_HOST_SECRET \
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key ${{ steps.ssh-user.outputs.user }}@$SSH_HOST_SECRET \
             "docker compose -f ~/cookbook/docker-compose.prod.yml ps"
+          
+      - name: Cleanup SSH key
+        if: always() && steps.check-ssh.outputs.skip == 'false'
+        run: |
+          rm -f ~/.ssh/deploy_key
+          if [ -n "$SSH_AGENT_PID" ]; then
+            kill $SSH_AGENT_PID 2>/dev/null || true
+          fi
