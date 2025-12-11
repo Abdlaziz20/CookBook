@@ -1,6 +1,12 @@
 #!/bin/bash
 set +e  # Ne pas arrêter sur erreur pour compter les tests
 
+
+
+
+
+
+
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║           Tests Complets - CookBook Application             ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
