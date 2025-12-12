@@ -59,7 +59,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile.prod
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
@@ -92,7 +92,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend/recipe-app
-          file: ./frontend/recipe-app/Dockerfile.prod
+          file: ./frontend/recipe-app/Dockerfile
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
