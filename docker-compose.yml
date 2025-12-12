@@ -7,6 +7,15 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+      - ./logs/mongo:/var/log/mongodb
+    networks:
+      - cookbook-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=mongo"
 
   backend:
     build: ./backend
@@ -18,11 +27,25 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/cookbook
       - JWT_SECRET=votre_secret_jwt_super_securise
       - PORT=3000
+      - NODE_ENV=development
     depends_on:
       - mongo
     volumes:
       - ./backend:/app
       - ./backend/public/images:/app/public/images
+      - ./logs/backend:/app/logs
+    networks:
+      - cookbook-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend"
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=3000"
+      - "prometheus.path=/metrics"
 
   frontend:
     build: ./frontend/recipe-app
@@ -36,6 +59,22 @@ services:
       - backend
     volumes:
       - ./frontend/recipe-app:/app
+      - ./logs/frontend:/app/logs
+    networks:
+      - cookbook-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=frontend"
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=5173"
+
+networks:
+  cookbook-network:
+    driver: bridge
 
 volumes:
   mongo-data:

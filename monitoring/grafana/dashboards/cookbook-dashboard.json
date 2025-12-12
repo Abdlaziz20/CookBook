@@ -1,0 +1,71 @@
+{
+  "dashboard": {
+    "title": "CookBook Application Dashboard",
+    "tags": ["cookbook", "mern"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Container CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=~\"cookbook.*\"}[5m])",
+            "legendFormat": "{{name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Container Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name=~\"cookbook.*\"}",
+            "legendFormat": "{{name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "System Load",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "node_load1",
+            "legendFormat": "1min"
+          },
+          {
+            "expr": "node_load5",
+            "legendFormat": "5min"
+          },
+          {
+            "expr": "node_load15",
+            "legendFormat": "15min"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s"
+  }
+}
+

@@ -41,11 +41,7 @@ Ce projet utilise deux workflows séparés pour une meilleure séparation des re
    - Build frontend (multi-stage)
    - Push vers GHCR avec tags : SHA, latest, branch
 
-2. **deploy-kubernetes** : Déploiement Kubernetes (conditionnel)
-   - Nécessite : `KUBECONFIG` secret
-   - Met à jour les déploiements avec les nouvelles images
-
-3. **deploy-vps** : Déploiement VPS (conditionnel)
+2. **deploy-vps** : Déploiement VPS (conditionnel)
    - Nécessite : `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` secrets
    - Exécute le script de déploiement SSH
 
@@ -82,8 +78,6 @@ Ce projet utilise deux workflows séparés pour une meilleure séparation des re
        │
        ├───► Build Images
        │
-       ├───► Deploy K8s (si configuré)
-       │
        └───► Deploy VPS (si configuré)
 ```
 
@@ -101,7 +95,6 @@ Ce projet utilise deux workflows séparés pour une meilleure séparation des re
 
 **Optionnel (pour déploiement) :**
 - `VITE_API_URL` : URL de l'API backend pour le frontend
-- `KUBECONFIG` : Configuration Kubernetes (base64 encodée)
 - `SSH_PRIVATE_KEY` : Clé SSH privée pour VPS
 - `SSH_HOST` : Adresse du serveur VPS
 - `SSH_USER` : Utilisateur SSH (défaut: root)
